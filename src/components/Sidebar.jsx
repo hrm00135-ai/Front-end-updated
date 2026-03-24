@@ -1,6 +1,21 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { getUser } from "../utils/api";
 
 const Sidebar = () => {
+  const user = getUser();
+  const location = useLocation();
+  const role = user?.role;
+  const isAdmin = role === "admin" || role === "super_admin";
+
+  const linkStyle = (path) => ({
+    color: location.pathname === path ? "#60a5fa" : "white",
+    textDecoration: "none",
+    display: "block",
+    padding: "8px 12px",
+    borderRadius: "6px",
+    background: location.pathname === path ? "rgba(255,255,255,0.1)" : "transparent",
+  });
+
   return (
     <div
       style={{
@@ -10,42 +25,44 @@ const Sidebar = () => {
         padding: "20px",
       }}
     >
-      {/* ✅ ADD THIS TITLE */}
-      <h2 style={{ marginBottom: "20px" }}>Admin Panel</h2>
+      <h2 style={{ marginBottom: "20px" }}>
+        {isAdmin ? "Admin Panel" : "Employee Panel"}
+      </h2>
 
       <ul style={{ listStyle: "none", padding: 0 }}>
-        <li style={{ marginBottom: "15px" }}>
-          <Link to="/admin" style={{ color: "white", textDecoration: "none" }}>
-            Dashboard
-          </Link>
-        </li>
 
-        <li style={{ marginBottom: "15px" }}>
-          <Link
-            to="/admin/employees"
-            style={{ color: "white", textDecoration: "none" }}
-          >
-            Employee List
-          </Link>
-        </li>
+        {/* Admin Links */}
+        {isAdmin && (
+          <>
+            <li style={{ marginBottom: "10px" }}>
+              <Link to="/admin" style={linkStyle("/admin")}>
+                Dashboard
+              </Link>
+            </li>
+            <li style={{ marginBottom: "10px" }}>
+              <Link to="/admin/employees" style={linkStyle("/admin/employees")}>
+                Employee List
+              </Link>
+            </li>
+            <li style={{ marginBottom: "10px" }}>
+              <Link to="/admin/assign-task" style={linkStyle("/admin/assign-task")}>
+                Assign Tasks
+              </Link>
+            </li>
+          </>
+        )}
 
-        <li style={{ marginBottom: "15px" }}>
-          <Link
-            to="/admin/assign-task"
-            style={{ color: "white", textDecoration: "none" }}
-          >
-            Assign Task
-          </Link>
-        </li>
+        {/* Employee Links */}
+        {!isAdmin && (
+          <>
+            <li style={{ marginBottom: "10px" }}>
+              <Link to="/employee" style={linkStyle("/employee")}>
+                Dashboard
+              </Link>
+            </li>
+          </>
+        )}
 
-        <li>
-          <Link
-            to="/admin/manage"
-            style={{ color: "white", textDecoration: "none" }}
-          >
-            Add/Delete Employee
-          </Link>
-        </li>
       </ul>
     </div>
   );

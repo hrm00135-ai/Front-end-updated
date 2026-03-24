@@ -1,4 +1,8 @@
+import { getUser, logout } from "../utils/api";
+
 const Navbar = () => {
+  const user = getUser();
+
   return (
     <div
       style={{
@@ -13,7 +17,9 @@ const Navbar = () => {
       }}
     >
       {/* Left */}
-      <h1>Admin Panel</h1>
+      <h1 style={{ fontSize: "18px", fontWeight: "bold" }}>
+        {user?.role === "employee" ? "Employee Panel" : "Admin Panel"}
+      </h1>
 
       {/* Center - Search */}
       <input
@@ -28,8 +34,32 @@ const Navbar = () => {
         }}
       />
 
-      {/* Right */}
-      <div>Profile</div>
+      {/* Right - User Info + Logout */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ textAlign: "right", fontSize: "14px" }}>
+          <div style={{ fontWeight: "600" }}>
+            {user?.first_name} {user?.last_name}
+          </div>
+          <div style={{ color: "#64748b", fontSize: "12px" }}>
+            {user?.employee_id} • {user?.role?.replace("_", " ")}
+          </div>
+        </div>
+
+        <button
+          onClick={logout}
+          style={{
+            background: "#ef4444",
+            color: "white",
+            border: "none",
+            padding: "6px 14px",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "13px",
+          }}
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 };
