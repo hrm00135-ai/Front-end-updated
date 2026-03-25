@@ -206,6 +206,7 @@ const Input = ({ label, value, onChange, type = "text", span2 }) => (
   <div style={{ gridColumn: span2 ? "1 / -1" : undefined }}>
     <label style={{ fontSize: "12px", color: "#64748b", display: "block", marginBottom: "4px" }}>{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)}
+      autoComplete={type === "email" ? "new-email" : type === "password" ? "new-password" : "off"}
       style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "14px" }} />
   </div>
 );

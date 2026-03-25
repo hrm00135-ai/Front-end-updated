@@ -4,6 +4,7 @@ import {
   X, User, Building2, FileText, 
   Download, Mail, Phone, MapPin, Activity 
 } from "lucide-react";
+import { apiCall } from "../../utils/api";
 
 // Helper component to keep our data rows clean and consistent
 const InfoItem = ({ label, value, icon: Icon }) => (
@@ -32,8 +33,6 @@ const EmployeeProfile = ({ employeeId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const baseUrl = "http://127.0.0.1:5000";
-
   useEffect(() => {
     // If we don't have an ID yet, don't fetch
     if (!id) return;
@@ -41,38 +40,45 @@ const EmployeeProfile = ({ employeeId, onClose }) => {
     const fetchEmployeeData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          navigate("/"); // Kick back to login if no token
-          return;
+
+        // Fetch user info first (this should always work)
+        const userRes = await apiCall(`/users/${id}`);
+        const userData = await userRes.json();
+        
+        if (!userRes.ok || userData.status !== "success") {
+          throw new Error("Failed to fetch employee data.");
         }
 
-        const headers = {
-          "Authorization": `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true", // Required for ngrok
-          "Content-Type": "application/json"
-        };
+        // Set basic user info as profile base
+        const userInfo = userData.data || {};
+        setProfile(userInfo);
 
-        // Hit all three endpoints concurrently 
-        const [profileRes, bankRes, docsRes] = await Promise.all([
-          fetch(`${baseUrl}/api/profiles/${id}`, { headers }),
-          fetch(`${baseUrl}/api/profiles/${id}/bank`, { headers }),
-          fetch(`${baseUrl}/api/profiles/${id}/documents`, { headers })
-        ]);
+        // Fetch profile, bank, docs separately — don't fail if they 404
+        try {
+          const profileRes = await apiCall(`/profiles/${id}`);
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            const pData = profileData.data || {};
+            // Merge profile fields into the user info
+            setProfile(prev => ({ ...prev, ...pData, ...(pData.profile || {}) }));
+          }
+        } catch {}
 
-        // Check if any of the requests failed
-        if (!profileRes.ok || !bankRes.ok || !docsRes.ok) {
-          throw new Error("Failed to fetch some employee data. Please try again.");
-        }
+        try {
+          const bankRes = await apiCall(`/profiles/${id}/bank`);
+          if (bankRes.ok) {
+            const bankData = await bankRes.json();
+            setBankDetails(bankData.data || null);
+          }
+        } catch {}
 
-        const profileData = await profileRes.json();
-        const bankData = await bankRes.json();
-        const docsData = await docsRes.json();
-
-        // Assuming your backend wraps responses in a { data: ... } object
-        setProfile(profileData.data || profileData);
-        setBankDetails(bankData.data || bankData);
-        setDocuments(docsData.data || docsData);
+        try {
+          const docsRes = await apiCall(`/profiles/${id}/documents`);
+          if (docsRes.ok) {
+            const docsData = await docsRes.json();
+            setDocuments(docsData.data || []);
+          }
+        } catch {}
 
       } catch (err) {
         setError(err.message);
@@ -259,7 +265,7 @@ const EmployeeProfile = ({ employeeId, onClose }) => {
                         </div>
                       </div>
                       <a 
-                        href={`${baseUrl}/api/profiles/${id}/documents/${doc.id}/download`} 
+                        href={`https://temp-backend-production-2b8a.up.railway.app/api/profiles/${id}/documents/${doc.id}/download`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors shrink-0"
