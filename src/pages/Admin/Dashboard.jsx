@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import { apiCall, getUser } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Dashboard = () => {
   const user = getUser();
@@ -83,31 +84,8 @@ const Dashboard = () => {
   }
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />}>
 
-      {/* Metal Prices Top Bar */}
-      <div style={{ 
-        background: "#1e293b", 
-        color: "white", 
-        padding: "10px 16px", 
-        borderRadius: "10px", 
-        marginBottom: "20px", 
-        display: "flex", 
-        gap: "20px", 
-        overflowX: "auto", 
-        fontSize: "13px",
-        // New properties for sticky positioning:
-        position: "sticky",
-        top: "10px", 
-        zIndex: 40 
-      }}>
-        {metals.length > 0 ? metals.map((m, i) => (
-          <div key={i} style={{ whiteSpace: "nowrap" }}>
-            <span style={{ color: "#94a3b8" }}>{m.metal?.toUpperCase()} {m.purity}: </span>
-            <span style={{ fontWeight: "bold", color: "#fbbf24" }}>Rs.{m.price_per_gram}/g</span>
-          </div>
-        )) : <span style={{ color: "#94a3b8" }}>No metal prices set. Add from API.</span>}
-      </div>
 
       <h1 className="text-2xl font-bold mb-6">Welcome, {user?.first_name} {user?.last_name}</h1>
 

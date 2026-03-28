@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall, getUser } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Attendance = () => {
   const user = getUser();
@@ -131,7 +132,7 @@ const Attendance = () => {
   };
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Attendance</h1>
         <button onClick={() => setAbsentModal(true)} style={{ background: "#dc2626", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>

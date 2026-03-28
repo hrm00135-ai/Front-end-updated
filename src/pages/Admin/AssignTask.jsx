@@ -4,6 +4,7 @@ import TaskCard from "../../components/TaskCard";
 import TaskColumn from "../../components/TaskColumn";
 import { Plus, X } from "lucide-react";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 // API status → column mapping
 const COLUMNS = [
@@ -121,7 +122,7 @@ const AssignTask = () => {
   }
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />}>
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">

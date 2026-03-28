@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall, getUser } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Leaves = () => {
   const user = getUser();
@@ -97,7 +98,7 @@ const Leaves = () => {
   const tabs = ["pending", "leave types", "holidays"];
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Leave Management</h1>
 
       {msg.text && (

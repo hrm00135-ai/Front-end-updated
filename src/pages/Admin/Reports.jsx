@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Reports = () => {
   const [tab, setTab] = useState("dashboard");
@@ -90,7 +91,7 @@ const Reports = () => {
   const tabs = ["dashboard", "attendance", "leaves", "payroll", "employee"];
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Reports</h1>
 
       {msg && (

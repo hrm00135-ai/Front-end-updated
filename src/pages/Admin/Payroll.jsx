@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Payroll = () => {
   const [tab, setTab] = useState("salary");
@@ -115,7 +116,7 @@ const Payroll = () => {
   const tabs = ["salary", "payslips", "daily wages"];
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Payroll</h1>
 
       {msg.text && (
