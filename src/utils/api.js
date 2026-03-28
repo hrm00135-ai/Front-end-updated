@@ -1,4 +1,5 @@
-const API_BASE = "https://temp-backend-production-2b8a.up.railway.app/api";
+export const API_BASE = "https://temp-backend-production-2b8a.up.railway.app/api";
+export const BASE_URL = "https://temp-backend-production-2b8a.up.railway.app";
 
 export async function apiCall(endpoint, options = {}) {
   const token = localStorage.getItem("access_token");

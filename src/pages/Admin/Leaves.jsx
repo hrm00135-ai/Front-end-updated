@@ -53,16 +53,17 @@ const Leaves = () => {
     } catch {}
   };
 
+  // FIX: Use the correct /review endpoint with action field
   const handleAction = async (id, action, comment = "") => {
     setProcessing(id);
     try {
-      const res = await apiCall(`/leaves/${id}/${action}`, {
+      const res = await apiCall(`/leaves/${id}/review`, {
         method: "POST",
-        body: JSON.stringify({ comment }),
+        body: JSON.stringify({ action, comment }),
       });
       const data = await res.json();
       if (data.status === "success") {
-        setMsg({ text: `Leave ${action}ed`, type: "success" });
+        setMsg({ text: `Leave ${action}d`, type: "success" });
         fetchPending();
       } else { setMsg({ text: data.message, type: "error" }); }
     } catch { setMsg({ text: "Network error", type: "error" }); }
