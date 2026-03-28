@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const MetalPrices = () => {
   const [tab, setTab] = useState("current");
@@ -88,7 +89,7 @@ const MetalPrices = () => {
   };
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Metal Prices</h1>
 
       {msg.text && (

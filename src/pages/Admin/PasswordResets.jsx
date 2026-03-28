@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const PasswordResets = () => {
   const [pending, setPending] = useState([]);
@@ -41,7 +42,7 @@ const PasswordResets = () => {
   };
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Password Reset Requests</h1>
 
       {msg.text && (

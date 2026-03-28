@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall, getUser } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const Leaves = () => {
   const user = getUser();
@@ -52,16 +53,17 @@ const Leaves = () => {
     } catch {}
   };
 
+  // FIX: Use the correct /review endpoint with action field
   const handleAction = async (id, action, comment = "") => {
     setProcessing(id);
     try {
-      const res = await apiCall(`/leaves/${id}/${action}`, {
+      const res = await apiCall(`/leaves/${id}/review`, {
         method: "POST",
-        body: JSON.stringify({ comment }),
+        body: JSON.stringify({ action, comment }),
       });
       const data = await res.json();
       if (data.status === "success") {
-        setMsg({ text: `Leave ${action}ed`, type: "success" });
+        setMsg({ text: `Leave ${action}d`, type: "success" });
         fetchPending();
       } else { setMsg({ text: data.message, type: "error" }); }
     } catch { setMsg({ text: "Network error", type: "error" }); }
@@ -97,7 +99,7 @@ const Leaves = () => {
   const tabs = ["pending", "leave types", "holidays"];
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <h1 className="text-2xl font-bold mb-6">Leave Management</h1>
 
       {msg.text && (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import { apiCall } from "../../utils/api";
+import AdminTopBar from "../../components/AdminTopBar";
 
 const SystemLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -61,7 +62,7 @@ const SystemLogs = () => {
   };
 
   return (
-    <Layout>
+    <Layout topBar={<AdminTopBar />} >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">System Logs</h1>
         <button onClick={handleVerify} style={{ background: "#1e293b", color: "white", padding: "8px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>

@@ -16,25 +16,30 @@ const TaskCard = ({
   description,
   onDelete,
   onMove,
+  onClick,
 }) => {
   return (
-    <div className="bg-white p-4 rounded-xl shadow mb-3">
+    <div
+      className="bg-white p-4 rounded-xl shadow mb-3"
+      style={{ cursor: onClick ? "pointer" : "default" }}
+    >
+      <div onClick={onClick}>
+        <h3 className="font-semibold text-gray-800 text-sm">
+          {title}
+        </h3>
 
-      <h3 className="font-semibold text-gray-800 text-sm">
-        {title}
-      </h3>
+        <p className="text-xs text-gray-500 mt-1">
+          {assignee_name} {assignee_employee_id ? `(${assignee_employee_id})` : ""}
+        </p>
 
-      <p className="text-xs text-gray-500 mt-1">
-        {assignee_name} {assignee_employee_id ? `(${assignee_employee_id})` : ""}
-      </p>
+        {category && (
+          <p className="text-xs text-gray-400 mt-0.5">{category}</p>
+        )}
 
-      {category && (
-        <p className="text-xs text-gray-400 mt-0.5">{category}</p>
-      )}
-
-      {description && (
-        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{description.slice(0, 80)}{description.length > 80 ? "..." : ""}</p>
-      )}
+        {description && (
+          <p className="text-xs text-gray-400 mt-1 line-clamp-2">{description.slice(0, 80)}{description.length > 80 ? "..." : ""}</p>
+        )}
+      </div>
 
       <div className="flex items-center justify-between mt-3">
 
@@ -55,20 +60,20 @@ const TaskCard = ({
 
           {/* Back */}
           {status !== "pending" && (
-            <button onClick={() => onMove("back")} className="hover:bg-gray-100 p-1 rounded" title="Move back">
+            <button onClick={(e) => { e.stopPropagation(); onMove("back"); }} className="hover:bg-gray-100 p-1 rounded" title="Move back">
               <ArrowLeft size={14} className="text-gray-500" />
             </button>
           )}
 
           {/* Forward */}
           {status !== "completed" && (
-            <button onClick={() => onMove("forward")} className="hover:bg-gray-100 p-1 rounded" title="Move forward">
+            <button onClick={(e) => { e.stopPropagation(); onMove("forward"); }} className="hover:bg-gray-100 p-1 rounded" title="Move forward">
               <ArrowRight size={14} className="text-gray-500" />
             </button>
           )}
 
           {/* Delete */}
-          <button onClick={onDelete} className="hover:bg-red-50 p-1 rounded" title="Delete">
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="hover:bg-red-50 p-1 rounded" title="Delete">
             <Trash2 size={14} className="text-red-400" />
           </button>
 
