@@ -39,12 +39,19 @@ const Sidebar = () => {
         overflowY: "auto",
       }}
     >
-      <h2 style={{ fontSize: "16px", fontWeight: "700", padding: "0 12px 8px", borderBottom: "1px solid #334155", marginBottom: "8px" }}>
+      <h2
+        style={{
+          fontSize: "16px",
+          fontWeight: "700",
+          padding: "0 12px 8px",
+          borderBottom: "1px solid #334155",
+          marginBottom: "8px",
+        }}
+      >
         {isAdmin ? "Admin Panel" : "Employee Panel"}
       </h2>
 
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-
         {isAdmin && (
           <>
             <span style={sectionLabel("Overview")}>Overview</span>
@@ -52,7 +59,8 @@ const Sidebar = () => {
             <li><Link to="/admin/employees" style={linkStyle("/admin/employees")}>Employees</Link></li>
 
             <span style={sectionLabel("Work")}>Work</span>
-            <li><Link to="/admin/assign-task" style={linkStyle("/admin/assign-task")}>Tasks</Link></li>
+            <li><Link to="/admin/assign-task" style={linkStyle("/admin/assign-task")}>Assign Tasks</Link></li>
+            <li><Link to="/admin/tasks" style={linkStyle("/admin/tasks")}>All Tasks</Link></li>
             <li><Link to="/admin/attendance" style={linkStyle("/admin/attendance")}>Attendance</Link></li>
             <li><Link to="/admin/leaves" style={linkStyle("/admin/leaves")}>Leaves</Link></li>
 
@@ -72,12 +80,15 @@ const Sidebar = () => {
 
         {!isAdmin && (
           <>
-            <li style={{ marginBottom: "10px" }}>
-              <Link to="/employee" style={linkStyle("/employee")}>Dashboard</Link>
-            </li>
+            <span style={sectionLabel("Employee")}>Employee</span>
+            <li><Link to="/employee" style={linkStyle("/employee")}>Dashboard</Link></li>
+            <li><Link to="/employee/tasks" style={linkStyle("/employee/tasks")}>My Tasks</Link></li>
+            <li><Link to="/employee/attendance" style={linkStyle("/employee/attendance")}>Attendance</Link></li>
+            <li><Link to="/employee/leaves" style={linkStyle("/employee/leaves")}>Leaves</Link></li>
+            <li><Link to="/employee/documents" style={linkStyle("/employee/documents")}>Documents</Link></li>
+            <li><Link to="/employee/profile" style={linkStyle("/employee/profile")}>My Profile</Link></li>
           </>
         )}
-
       </ul>
     </div>
   );

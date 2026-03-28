@@ -38,7 +38,7 @@ const EmployeeList = () => {
         setEmployees(data.data?.users || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("FETCH EMPLOYEE ERROR:", err);
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,8 @@ const EmployeeList = () => {
   useEffect(() => { fetchEmployees(); }, []);
 
   const handleRegister = async () => {
-    setError(""); setSuccess("");
+    setError("");
+    setSuccess("");
 
     if (!formData.email || !formData.password || !formData.first_name || !formData.phone) {
       setError("Email, password, first name and phone are required");
@@ -66,17 +67,14 @@ const EmployeeList = () => {
         ? "/users/register/admin"
         : "/users/register/employee";
 
-      // FormData for file upload
-      const form = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== "") {
-          form.append(key, formData[key]);
-        }
-      });
+      // ✅ Send as JSON — photo upload is handled separately on the profile page
+      const { photo, ...fields } = formData;
 
       const res = await apiCall(endpoint, {
         method: "POST",
-        body: form,
+        body: JSON.stringify(fields),
+        // apiCall automatically sets Content-Type: application/json
+        // when body is not a FormData instance
       });
 
       const data = await res.json();
@@ -84,7 +82,6 @@ const EmployeeList = () => {
       if (data.status === "success") {
         setSuccess(`${registerRole} registered successfully`);
 
-        // reset form
         setFormData({
           email: "",
           password: "",
@@ -99,7 +96,6 @@ const EmployeeList = () => {
         setShowForm(false);
         fetchEmployees();
 
-        // redirect to profile
         setTimeout(() => {
           navigate(`/admin/employees/${data.data.id}`);
         }, 800);
@@ -108,8 +104,9 @@ const EmployeeList = () => {
         setError(data.message || "Registration failed");
       }
 
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      console.error("REGISTER ERROR:", err);
+      setError("Error: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -128,7 +125,8 @@ const EmployeeList = () => {
       } else {
         setError(data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error("DEACTIVATE ERROR:", err);
       setError("Network error");
     }
   };
@@ -144,7 +142,6 @@ const EmployeeList = () => {
   return (
     <Layout topBar={<AdminTopBar />}>
 
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">User Management</h1>
         <button
@@ -156,18 +153,14 @@ const EmployeeList = () => {
         </button>
       </div>
 
-      {/* Messages */}
       {error && <div className="bg-red-100 text-red-600 p-2 rounded mb-4">{error}</div>}
       {success && <div className="bg-green-100 text-green-600 p-2 rounded mb-4">{success}</div>}
 
-      {/* FORM */}
       {showForm && (
         <div className="bg-white p-5 rounded-xl shadow mb-6">
 
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">
-              Register {registerRole}
-            </h3>
+            <h3 className="font-semibold">Register {registerRole}</h3>
 
             {/* Role Toggle — only super_admin can register admins */}
             {isSuperAdmin && (
@@ -199,65 +192,38 @@ const EmployeeList = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-
             <Input label="First Name *" value={formData.first_name}
-              onChange={v => setFormData({ ...formData, first_name: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, first_name: v })} />
 
             <Input label="Last Name (Optional)" value={formData.last_name}
-              onChange={v => setFormData({ ...formData, last_name: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, last_name: v })} />
 
             <Input label="Email *" type="email"
               value={formData.email}
-              onChange={v => setFormData({ ...formData, email: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, email: v })} />
 
             <Input label="Password *" type="password"
               value={formData.password}
-              onChange={v => setFormData({ ...formData, password: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, password: v })} />
 
             <Input label="Phone *"
               value={formData.phone}
-              onChange={v => setFormData({ ...formData, phone: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, phone: v })} />
 
             <Input label="Alternate Phone"
               value={formData.alt_phone}
-              onChange={v => setFormData({ ...formData, alt_phone: v })} autoComplete="new-password" />
+              onChange={v => setFormData({ ...formData, alt_phone: v })} />
 
             <Input label="Work Location"
               value={formData.location_of_work}
               onChange={v => setFormData({ ...formData, location_of_work: v })}
-              span2 autoComplete="new-password" />
-
-            {/* PHOTO */}
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label className="text-sm text-gray-600 block mb-1">Employee Photo</label>
-
-              <div className="flex items-center gap-3">
-                <label className="bg-gray-200 px-3 py-1 rounded cursor-pointer hover:bg-gray-300 text-sm">
-                  Choose Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      setFormData({ ...formData, photo: e.target.files[0] })
-                    }
-                    style={{ display: "none" }}
-                  />
-                </label>
-                  
-                <span className="text-sm text-gray-500">
-                  {formData.photo ? formData.photo.name : "No file chosen"}
-                </span>
-              </div>
-            </div>
-
+              span2 />
           </div>
 
-          {/* Upload Later */}
-          <div className="flex gap-2 mt-3 flex-wrap">
-            <button className="border px-3 py-1 rounded text-sm">Add Personal Details Later</button>
-            <button className="border px-3 py-1 rounded text-sm">Upload Documents Later</button>
-            <button className="border px-3 py-1 rounded text-sm">Add Bank Details Later</button>
-          </div>
+          {/* Note about photo */}
+          <p className="text-xs text-gray-400 mt-3">
+            📷 Photo can be uploaded from the employee's profile page after registration.
+          </p>
 
           <button
             onClick={handleRegister}
@@ -274,32 +240,36 @@ const EmployeeList = () => {
         <table className="w-full text-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="p-3">Emp ID</th>
-              <th className="p-3">Name</th>
-              <th className="p-3">Email</th>
-              <th className="p-3">Role</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Joined</th>
-              <th className="p-3">Action</th>
+              <th className="p-3 text-left">Emp ID</th>
+              <th className="p-3 text-left">Name</th>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Role</th>
+              <th className="p-3 text-left">Department</th>
+              <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Joined</th>
+              <th className="p-3 text-left">Action</th>
             </tr>
           </thead>
 
           <tbody>
             {employees.map(emp => (
-              <tr key={emp.id} className="border-t">
+              <tr key={emp.id} className="border-t hover:bg-gray-50">
 
                 <td className="p-3 font-semibold">{emp.employee_id}</td>
 
-                <td className="p-3 flex items-center gap-2">
-                  <img
-                    src={emp.photo_url || `https://ui-avatars.com/api/?name=${emp.first_name}`}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  {emp.first_name} {emp.last_name || ""}
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={emp.photo_url || `https://ui-avatars.com/api/?name=${emp.first_name}`}
+                      className="w-8 h-8 rounded-full object-cover"
+                      alt={emp.first_name}
+                    />
+                    {emp.first_name} {emp.last_name || ""}
+                  </div>
                 </td>
 
                 <td className="p-3">{emp.email}</td>
+
                 <td className="p-3">
                   <span style={{
                     background: emp.role === "super_admin" ? "#fce7f3" : emp.role === "admin" ? "#dbeafe" : "#f1f5f9",
@@ -309,23 +279,26 @@ const EmployeeList = () => {
                     {emp.role?.replace("_", " ")}
                   </span>
                 </td>
+
                 <td className="p-3">{emp.department || "NA"}</td>
                 <td className="p-3">{emp.is_active ? "Active" : "Inactive"}</td>
                 <td className="p-3">{emp.date_of_joining || "NA"}</td>
 
-                <td className="p-3 flex gap-2">
-                  <button
-                    onClick={() => navigate(`/admin/employees/${emp.id}`)}
-                    className="border px-2 py-1 rounded"
-                  >
-                    Profile
-                  </button>
-
-                  {emp.is_active && (
-                    <button onClick={() => handleDeactivate(emp.id, emp.employee_id)}>
-                      <Trash2 className="text-red-500" size={18} />
+                <td className="p-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/admin/employees/${emp.id}`)}
+                      className="border px-2 py-1 rounded text-xs hover:bg-gray-100"
+                    >
+                      Profile
                     </button>
-                  )}
+
+                    {emp.is_active && (
+                      <button onClick={() => handleDeactivate(emp.id, emp.employee_id)}>
+                        <Trash2 className="text-red-500" size={18} />
+                      </button>
+                    )}
+                  </div>
                 </td>
 
               </tr>
@@ -338,14 +311,13 @@ const EmployeeList = () => {
   );
 };
 
-const Input = ({ label, value, onChange, type = "text", span2, autoComplete }) => (
+const Input = ({ label, value, onChange, type = "text", span2 }) => (
   <div style={{ gridColumn: span2 ? "1 / -1" : undefined }}>
     <label className="text-xs text-gray-500">{label}</label>
     <input
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
-      autoComplete={autoComplete || "off"}
       className="w-full border px-2 py-1 rounded"
     />
   </div>
