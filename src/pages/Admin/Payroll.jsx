@@ -84,6 +84,9 @@ const Payroll = () => {
     }
   };
 
+  // FIXED number parsing
+  const num = (v) => v === "" ? "" : parseFloat(v);
+
   const handleSetSalary = async () => {
     if (!selectedEmp) return;
     try {
@@ -112,7 +115,6 @@ const Payroll = () => {
     } catch { setMsg({ text: "Network error", type: "error" }); }
   };
 
-  // Proper payment modal flow
   const handleMarkPaid = async () => {
     if (!paymentModal) return;
     try {
@@ -137,7 +139,6 @@ const Payroll = () => {
     } catch { setMsg({ text: "Network error", type: "error" }); }
   };
 
-  // Bulk pay daily wages
   const handleBulkPay = async () => {
     if (!bulkPayForm.user_id) { setMsg({ text: "Select employee", type: "error" }); return; }
     try {
@@ -163,7 +164,6 @@ const Payroll = () => {
     } catch { setMsg({ text: "Network error", type: "error" }); }
   };
 
-  // Weekly summary
   const fetchWeeklySummary = async () => {
     if (!weeklyEmp || !weekStart) { setMsg({ text: "Select employee and week start", type: "error" }); return; }
     try {
@@ -217,14 +217,14 @@ const Payroll = () => {
               <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px", fontWeight: "600" }}>Earnings</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                 {["basic_salary", "hra", "da", "conveyance", "medical_allowance", "special_allowance"].map(f => (
-                  <FI key={f} label={f.replace(/_/g, " ")} type="number" value={salaryForm[f] || ""} onChange={v => setSalaryForm({ ...salaryForm, [f]: parseFloat(v) || "" })} />
+                  <FI key={f} label={f.replace(/_/g, " ")} type="number" value={salaryForm[f] || ""} onChange={v => setSalaryForm({ ...salaryForm, [f]: num(v) })} />
                 ))}
               </div>
 
               <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px", fontWeight: "600" }}>Deductions</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                 {["pf_employee", "pf_employer", "esi_employee", "esi_employer", "professional_tax", "tds"].map(f => (
-                  <FI key={f} label={f.replace(/_/g, " ")} type="number" value={salaryForm[f] || ""} onChange={v => setSalaryForm({ ...salaryForm, [f]: parseFloat(v) || "" })} />
+                  <FI key={f} label={f.replace(/_/g, " ")} type="number" value={salaryForm[f] || ""} onChange={v => setSalaryForm({ ...salaryForm, [f]: num(v) })} />
                 ))}
               </div>
 
@@ -263,7 +263,7 @@ const Payroll = () => {
               </div>
               <FI label="Month" type="number" value={payslipForm.month} onChange={v => setPayslipForm({ ...payslipForm, month: parseInt(v) })} />
               <FI label="Year" type="number" value={payslipForm.year} onChange={v => setPayslipForm({ ...payslipForm, year: parseInt(v) })} />
-              <FI label="Bonus" type="number" value={payslipForm.bonus} onChange={v => setPayslipForm({ ...payslipForm, bonus: parseFloat(v) })} />
+              <FI label="Bonus" type="number" value={payslipForm.bonus} onChange={v => setPayslipForm({ ...payslipForm, bonus: num(v) })} />
             </div>
             <button onClick={handleGeneratePayslip} style={{ marginTop: "12px", background: "#2563eb", color: "white", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
               Generate
@@ -333,9 +333,9 @@ const Payroll = () => {
                 </select>
               </div>
               <FI label="Date" type="date" value={wageForm.date} onChange={v => setWageForm({ ...wageForm, date: v })} />
-              <FI label="Per Day Rate (₹)" type="number" value={wageForm.per_day_rate} onChange={v => setWageForm({ ...wageForm, per_day_rate: parseFloat(v) })} />
-              <FI label="OT Hours" type="number" value={wageForm.overtime_hours} onChange={v => setWageForm({ ...wageForm, overtime_hours: parseFloat(v) })} />
-              <FI label="OT Rate (x)" type="number" value={wageForm.overtime_rate} onChange={v => setWageForm({ ...wageForm, overtime_rate: parseFloat(v) })} />
+              <FI label="Per Day Rate (₹)" type="number" value={wageForm.per_day_rate} onChange={v => setWageForm({ ...wageForm, per_day_rate: num(v) })} />
+              <FI label="OT Hours" type="number" value={wageForm.overtime_hours} onChange={v => setWageForm({ ...wageForm, overtime_hours: num(v) })} />
+              <FI label="OT Rate (x)" type="number" value={wageForm.overtime_rate} onChange={v => setWageForm({ ...wageForm, overtime_rate: num(v) })} />
               <FI label="Notes" value={wageForm.notes} onChange={v => setWageForm({ ...wageForm, notes: v })} />
             </div>
             <button onClick={handleAddWage} style={{ marginTop: "12px", background: "#2563eb", color: "white", padding: "8px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
@@ -355,9 +355,15 @@ const Payroll = () => {
                   <th style={th}>Notes</th>
                 </tr>
               </thead>
+
+
               <tbody>
-                {wages.length === 0 ? (
-                  <tr><td colSpan="6" style={{ padding: "30px", textAlign: "center", color: "#94a3b8" }}>No wage records</td></tr>
+                {!Array.isArray(wages) || wages.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ padding: "30px", textAlign: "center", color: "#94a3b8" }}>
+                      No wage records
+                    </td>
+                  </tr>
                 ) : wages.map(w => (
                   <tr key={w.id} style={{ borderTop: "1px solid #e2e8f0" }}>
                     <td style={td}>{w.date}</td>
@@ -365,7 +371,14 @@ const Payroll = () => {
                     <td style={td}>{w.overtime_hours || 0}h</td>
                     <td style={{ ...td, fontWeight: "600" }}>₹{w.total_earned || w.total_pay || "—"}</td>
                     <td style={td}>
-                      <span style={{ background: (w.is_paid || w.payment_status === "paid") ? "#dcfce7" : "#fef3c7", color: (w.is_paid || w.payment_status === "paid") ? "#16a34a" : "#d97706", padding: "2px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "600" }}>
+                      <span style={{
+                        background: (w.is_paid || w.payment_status === "paid") ? "#dcfce7" : "#fef3c7",
+                        color: (w.is_paid || w.payment_status === "paid") ? "#16a34a" : "#d97706",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        fontWeight: "600"
+                      }}>
                         {(w.is_paid || w.payment_status === "paid") ? "Paid" : "Pending"}
                       </span>
                     </td>
@@ -373,6 +386,8 @@ const Payroll = () => {
                   </tr>
                 ))}
               </tbody>
+
+
             </table>
           </div>
         </>

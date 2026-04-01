@@ -12,6 +12,16 @@ import MetalPrices from "./pages/Admin/MetalPrices";
 import Reports from "./pages/Admin/Reports";
 import PasswordResets from "./pages/Admin/PasswordResets";
 import SystemLogs from "./pages/Admin/SystemLogs";
+import LoginActivity from "./pages/Admin/LoginActivity";
+import ErrorBoundary from "./components/ErrorBoundary";
+import EmployeeTasks from "./pages/Employee/EmployeeTasks";
+import EmployeeAttendance from "./pages/Employee/Attendance";
+import EmployeeLeaves from "./pages/Employee/Leaves";
+import EmployeeDocuments from "./pages/Employee/Documents";
+import EmployeeProfilePage from "./pages/Employee/Profile";
+import Payments from "./pages/Admin/Payments";
+import EmployeePayments from "./pages/Employee/Payments";
+
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem("access_token");
@@ -35,6 +45,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
@@ -75,12 +86,6 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/admin/payroll" element={
-          <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
-            <Payroll />
-          </ProtectedRoute>
-        } />
-
         <Route path="/admin/metals" element={
           <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
             <MetalPrices />
@@ -105,14 +110,63 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/admin/login-activity" element={
+          <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+            <LoginActivity />
+          </ProtectedRoute>
+        } />
+
         <Route path="/employee" element={
           <ProtectedRoute allowedRoles={["employee"]}>
             <EmployeeDashboard />
           </ProtectedRoute>
         } />
 
+        <Route path="/employee/tasks" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeTasks />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee/attendance" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeAttendance />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee/leaves" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeLeaves />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee/documents" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeDocuments />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee/profile" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeeProfilePage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/payments" element={
+          <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+            <Payments />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/employee/payments" element={
+          <ProtectedRoute allowedRoles={["employee"]}>
+            <EmployeePayments />
+          </ProtectedRoute>
+        } />
+
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

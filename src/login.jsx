@@ -32,7 +32,7 @@ function Login() {
     }
   }, [navigate]);
 
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -66,7 +66,7 @@ const handleLogin = async (e) => {
     }
   };
 
-const handlePasswordReset = async (e) => {
+  const handlePasswordReset = async (e) => {
     e.preventDefault();
     setResetMessage("Sending...");
     try {
@@ -75,17 +75,37 @@ const handlePasswordReset = async (e) => {
         body: JSON.stringify({ email: resetEmail }),
       });
       const data = await res.json();
-      setResetMessage(data.message || "If the email exists, an OTP has been sent.");
+      setResetMessage(
+        data.message || "If the email exists, an OTP has been sent.",
+      );
     } catch {
       setResetMessage("Network error.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 p-4">
-
+    <div
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 p-4"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #dbeafe, #e0e7ff, #ede9fe)",
+        padding: "16px",
+      }}
+    >
       {/* Login Card */}
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-80">
+      <div
+        className="bg-white p-8 rounded-2xl shadow-lg w-80"
+        style={{
+          background: "white",
+          padding: "32px",
+          borderRadius: "16px",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
+          width: "320px",
+        }}
+      >
         <h2 className="text-2xl font-semibold text-center mb-6">Login</h2>
 
         {error && (
@@ -122,7 +142,10 @@ const handlePasswordReset = async (e) => {
           </button>
 
           <p
-            onClick={() => { setShowPopup(true); setResetMessage(""); }}
+            onClick={() => {
+              setShowPopup(true);
+              setResetMessage("");
+            }}
             className="text-sm text-gray-500 mt-3 text-right cursor-pointer hover:underline"
           >
             Forgot Password?
@@ -136,7 +159,8 @@ const handlePasswordReset = async (e) => {
           <div className="bg-white p-6 rounded-2xl shadow-2xl w-80 relative">
             <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Enter your email. An OTP will be sent and your admin will reset your password.
+              Enter your email. An OTP will be sent and your admin will reset
+              your password.
             </p>
 
             <form onSubmit={handlePasswordReset}>
