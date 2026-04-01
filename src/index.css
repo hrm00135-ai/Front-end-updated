@@ -1,3 +1,134 @@
 @import "tailwindcss";
 
-/* ADD everything below — fallback if Tailwind fails to load */
+/* ═══════════════════════════════════════════════════════════════════════════
+   JEWELCRAFT HRM — Global responsive utility styles
+   These apply app-wide, fixing tables and layouts on mobile.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Responsive table wrapper ───────────────────────────────────────────── */
+/* Wrap any <table> in <div class="t-wrap"> to make it scroll horizontally  */
+/* on small screens instead of breaking the layout.                         */
+.t-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+/* ── Prevent all tables from forcing layout overflow ────────────────────── */
+table {
+  /* tables that aren't inside .t-wrap will still try to stay in bounds */
+  max-width: 100%;
+}
+
+/* ── Force every table cell to not wrap its content awkwardly ───────────── */
+/* Pages that already have inline styles keep those; this is the fallback.  */
+th, td {
+  vertical-align: middle;
+}
+
+/* ── Card / panel box sizing ────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+/* ── Prevent images from overflowing their containers ───────────────────── */
+img {
+  max-width: 100%;
+}
+
+/* ── Tailwind-grid mobile overrides ─────────────────────────────────────── */
+/* grid-cols-4 used in several pages — collapse to 2 on tablet, 1 on phone  */
+@media (max-width: 900px) {
+  .grid-cols-4,
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 540px) {
+  .grid-cols-4,
+  .xl\:grid-cols-4,
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* single column only where we really need it */
+  .xs\:grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Kanban board: one column per card on phones ────────────────────────── */
+@media (max-width: 540px) {
+  .grid.grid-cols-1.md\:grid-cols-2.xl\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Input / select full-width on mobile ────────────────────────────────── */
+@media (max-width: 600px) {
+  input[type="text"],
+  input[type="date"],
+  input[type="month"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* Filter bars that use flex — let them stack vertically */
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+/* ── Page title sizing ──────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  h1.text-2xl { font-size: 18px !important; }
+  h2.text-lg  { font-size: 15px !important; }
+}
+
+/* ── Modal full-screen on very small phones ─────────────────────────────── */
+@media (max-width: 480px) {
+  /* Modals using fixed + flex centering */
+  [style*="position: fixed"][style*="align-items: center"] > div,
+  [style*="position:fixed"][style*="alignItems:center"] > div {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+  }
+}
+
+/* ── Fix: Tailwind overflow-hidden cards that contain tables ────────────── */
+/* The pattern "bg-white rounded-xl shadow overflow-hidden" wrapping a table */
+/* clips the table on mobile. We override to allow horizontal scroll.        */
+@media (max-width: 768px) {
+  .overflow-hidden:has(table),
+  .overflow-hidden:has(.t-wrap) {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Scrollbar thin style for overflow containers ───────────────────────── */
+.t-wrap::-webkit-scrollbar,
+[style*="overflow-x: auto"]::-webkit-scrollbar,
+[style*="overflowX: auto"]::-webkit-scrollbar {
+  height: 4px;
+}
+.t-wrap::-webkit-scrollbar-track,
+[style*="overflow-x: auto"]::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.t-wrap::-webkit-scrollbar-thumb,
+[style*="overflow-x: auto"]::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
