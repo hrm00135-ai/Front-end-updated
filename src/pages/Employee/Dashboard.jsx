@@ -38,9 +38,16 @@ const EmployeeDashboard = () => {
   });
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Payslip
+  // Payslip (kept for backward compat)
   const [payslips, setPayslips] = useState([]);
   const [salaryStructure, setSalaryStructure] = useState(null);
+
+  // Payments (new)
+  const [paymentSummary, setPaymentSummary]   = useState(null);
+  const [paymentHistory, setPaymentHistory]   = useState([]);
+  const [payHistPage, setPayHistPage]         = useState(1);
+  const [payHistTotal, setPayHistTotal]       = useState(0);
+  const [expandedPayTx, setExpandedPayTx]     = useState(null); // tx id for full detail view
 
   // AUTO CHECK-IN
   useEffect(() => {
@@ -151,6 +158,24 @@ const EmployeeDashboard = () => {
       const res = await apiCall(`/payroll/salary/${user.id}`);
       const data = await res.json();
       if (data.status === "success") setSalaryStructure(data.data);
+    } catch {}
+  };
+
+  const fetchPayments = async (page = 1) => {
+    try {
+      // Try self-endpoint first
+      const sumRes = await apiCall("/payments/my-summary");
+      const sumData = await sumRes.json();
+      if (sumData.status === "success") setPaymentSummary(sumData.data);
+    } catch {}
+    try {
+      const histRes = await apiCall(`/payments/my-history?page=${page}&per_page=20`);
+      const histData = await histRes.json();
+      if (histData.status === "success") {
+        setPaymentHistory(Array.isArray(histData.data?.transactions) ? histData.data.transactions : []);
+        setPayHistTotal(histData.data?.total || 0);
+        setPayHistPage(page);
+      }
     } catch {}
   };
 
@@ -420,7 +445,7 @@ const EmployeeDashboard = () => {
           "apply leave",
           "my leaves",
           "attendance history",
-          "payslip",
+          "payments",
         ].map((t) => (
           <button
             key={t}
@@ -428,9 +453,8 @@ const EmployeeDashboard = () => {
               setTab(t);
               if (t === "my leaves") fetchMyLeaves();
               if (t === "attendance history") fetchAttHistory();
-              if (t === "payslip") {
-                fetchPayslips();
-                fetchSalaryStructure();
+              if (t === "payments") {
+                fetchPayments(1);
               }
             }}
             style={{
@@ -1050,121 +1074,17 @@ const EmployeeDashboard = () => {
         </>
       )}
 
-      {/* PAYSLIP TAB */}
-      {tab === "payslip" && (
-        <>
-          {/* Salary Structure */}
-          {salaryStructure && (
-            <div className="bg-white p-5 rounded-xl shadow mb-6">
-              <h3 style={{ fontWeight: "600", marginBottom: "12px" }}>
-                My Salary Structure
-              </h3>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                  gap: "12px",
-                }}
-              >
-                <SumCard
-                  label="Gross"
-                  value={`₹${salaryStructure.gross_salary || 0}`}
-                  color="#1e293b"
-                />
-                <SumCard
-                  label="Deductions"
-                  value={`₹${salaryStructure.total_deductions || 0}`}
-                  color="#dc2626"
-                />
-                <SumCard
-                  label="Net"
-                  value={`₹${salaryStructure.net_salary || 0}`}
-                  color="#16a34a"
-                />
-                <SumCard
-                  label="CTC"
-                  value={`₹${salaryStructure.ctc || 0}`}
-                  color="#3b82f6"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Payslips */}
-          <div className="bg-white rounded-xl shadow overflow-hidden">
-            <div style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
-              <h3 style={{ fontWeight: "600" }}>My Payslips</h3>
-            </div>
-            {payslips.length === 0 ? (
-              <div
-                style={{
-                  padding: "40px",
-                  textAlign: "center",
-                  color: "#94a3b8",
-                }}
-              >
-                No payslips found
-              </div>
-            ) : (
-              <table
-                style={{
-                  width: "100%",
-                  fontSize: "13px",
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead style={{ background: "#f8fafc" }}>
-                  <tr>
-                    <th style={th}>Month/Year</th>
-                    <th style={th}>Gross</th>
-                    <th style={th}>Deductions</th>
-                    <th style={th}>Net</th>
-                    <th style={th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payslips.map((p, i) => (
-                    <tr
-                      key={p.id || i}
-                      style={{ borderTop: "1px solid #e2e8f0" }}
-                    >
-                      <td style={td}>
-                        {p.month}/{p.year}
-                      </td>
-                      <td style={td}>₹{p.gross_salary}</td>
-                      <td style={td}>₹{p.total_deductions}</td>
-                      <td
-                        style={{ ...td, fontWeight: "600", color: "#16a34a" }}
-                      >
-                        ₹{p.net_salary}
-                      </td>
-                      <td style={td}>
-                        <span
-                          style={{
-                            background:
-                              p.payment_status === "paid"
-                                ? "#dcfce7"
-                                : "#fef3c7",
-                            color:
-                              p.payment_status === "paid"
-                                ? "#16a34a"
-                                : "#d97706",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {p.payment_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
+      {/* PAYMENTS TAB */}
+      {tab === "payments" && (
+        <EmployeePaymentsTab
+          summary={paymentSummary}
+          history={paymentHistory}
+          histPage={payHistPage}
+          histTotal={payHistTotal}
+          expanded={expandedPayTx}
+          onExpand={setExpandedPayTx}
+          onPage={fetchPayments}
+        />
       )}
     </Layout>
   );
@@ -1282,6 +1202,171 @@ const ActionBtn = ({ label, color, onClick }) => (
   >
     {label}
   </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EmployeePaymentsTab — used inside Employee Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+const fmtMoney = (n) =>
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(Math.max(0, n ?? 0));
+
+const fmtDT = (d) => {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const METHOD_ICONS_EMP = { cash: "💵 Cash", bank: "🏦 Bank", upi: "📱 UPI" };
+
+function EmployeePaymentsTab({ summary, history, histPage, histTotal, expanded, onExpand, onPage }) {
+  const remaining = Math.max(0, summary?.remaining ?? 0);
+  const totalEarned = summary?.total_earned ?? 0;
+  const totalPaid   = summary?.total_paid   ?? 0;
+
+  // Sort history by payment_date descending
+  const sorted = [...history].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+
+  // Group paid ones by date for dropdown
+  const [openGroup, setOpenGroup] = useState(null);
+
+  // pending = no task completed or remaining > 0
+  const unpaidEntries  = sorted.filter(tx => tx.status !== "reversed");
+  const pendingAmount  = remaining;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+        {[
+          { label: "Total Earned", value: fmtMoney(totalEarned), color: "#1e293b" },
+          { label: "Total Paid",   value: fmtMoney(totalPaid),   color: "#0f766e" },
+          { label: "Pending",      value: fmtMoney(pendingAmount), color: pendingAmount > 0 ? "#b45309" : "#16a34a" },
+        ].map(c => (
+          <div key={c.label} style={{ background: c.color, color: "#fff", borderRadius: 12, padding: "16px 18px" }}>
+            <div style={{ fontSize: 11, opacity: 0.7, textTransform: "uppercase", letterSpacing: 1 }}>{c.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pending banner */}
+      {pendingAmount > 0 && (
+        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22 }}>⏳</span>
+          <div>
+            <div style={{ fontWeight: 700, color: "#92400e", fontSize: 14 }}>
+              {fmtMoney(pendingAmount)} pending from admin
+            </div>
+            <div style={{ fontSize: 12, color: "#b45309" }}>Your earnings are recorded — payment will arrive soon</div>
+          </div>
+        </div>
+      )}
+
+      {pendingAmount <= 0 && totalPaid > 0 && (
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22 }}>✅</span>
+          <div style={{ fontWeight: 700, color: "#166534", fontSize: 14 }}>All payments settled!</div>
+        </div>
+      )}
+
+      {/* Payment History as collapsible groups */}
+      <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.07)", overflow: "hidden" }}>
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>💳 My Payments ({histTotal})</h3>
+        </div>
+
+        {sorted.length === 0 ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🧾</div>
+            <p style={{ fontWeight: 600 }}>No payments recorded yet</p>
+          </div>
+        ) : (
+          <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+            {sorted.map((tx) => {
+              const isOpen = expanded === tx.id;
+              return (
+                <div key={tx.id} style={{
+                  border: `1px solid ${tx.is_advance ? "#e9d5ff" : "#bbf7d0"}`,
+                  borderRadius: 10, overflow: "hidden",
+                  opacity: tx.status === "reversed" ? 0.5 : 1,
+                }}>
+                  {/* Row header — click to expand */}
+                  <button onClick={() => onExpand(isOpen ? null : tx.id)}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 10,
+                      padding: "11px 14px", background: isOpen ? (tx.is_advance ? "#faf5ff" : "#f0fdf4") : "#f8fafc",
+                      border: "none", cursor: "pointer", textAlign: "left",
+                    }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>{tx.is_advance ? "🏷️" : "💰"}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: tx.status === "reversed" ? "#94a3b8" : "#0f766e", textDecoration: tx.status === "reversed" ? "line-through" : "none" }}>
+                          {fmtMoney(tx.amount)}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10,
+                          background: tx.is_advance ? "#ede9fe" : "#dcfce7",
+                          color: tx.is_advance ? "#7c3aed" : "#16a34a" }}>
+                          {tx.is_advance ? "Advance" : "Full Payment"}
+                        </span>
+                        {tx.status === "reversed" && (
+                          <span style={{ fontSize: 10, background: "#fee2e2", color: "#991b1b", padding: "2px 8px", borderRadius: 10, fontWeight: 700 }}>Reversed</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                        {fmtDT(tx.payment_date)} · {METHOD_ICONS_EMP[tx.payment_method] || tx.payment_method}
+                        {tx.task_title ? ` · 📋 ${tx.task_title}` : ""}
+                      </div>
+                    </div>
+                    <span style={{ color: "#94a3b8", fontSize: 14, flexShrink: 0 }}>{isOpen ? "▲" : "▼"}</span>
+                  </button>
+
+                  {/* Expanded detail */}
+                  {isOpen && (
+                    <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #f1f5f9" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13 }}>
+                        <DetailRow k="Date"   v={fmtDT(tx.payment_date)} />
+                        <DetailRow k="Method" v={METHOD_ICONS_EMP[tx.payment_method] || tx.payment_method} />
+                        <DetailRow k="Type"   v={tx.is_advance ? "🏷️ Advance" : "💰 Full Payment"} />
+                        <DetailRow k="Amount" v={fmtMoney(tx.amount)} bold color={tx.status === "reversed" ? "#94a3b8" : "#0f766e"} />
+                        {tx.task_title && <DetailRow k="Task"     v={`${tx.task_title} (#${tx.task_id})`} span />}
+                        {tx.reference_note && <DetailRow k="Note"  v={tx.reference_note} span />}
+                        {tx.paid_by_name && <DetailRow k="Paid By" v={tx.paid_by_name} />}
+                        {tx.status === "reversed" && <DetailRow k="Reversal" v={tx.reversal_reason || "—"} span color="#dc2626" />}
+                      </div>
+                      {tx.invoice_url && (
+                        <div style={{ marginTop: 10 }}>
+                          <a href={tx.invoice_url.startsWith("http") ? tx.invoice_url : `${BASE_URL}/${tx.invoice_url}`}
+                            target="_blank" rel="noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#eff6ff", color: "#2563eb", borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none", border: "1px solid #bfdbfe" }}>
+                            🧾 View Invoice / Slip
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Pagination */}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 4 }}>
+              {histPage > 1 && <button onClick={() => onPage(histPage - 1)} style={pgBtn}>← Prev</button>}
+              <span style={{ fontSize: 12, color: "#64748b", padding: "6px 0" }}>Page {histPage}</span>
+              {history.length === 20 && <button onClick={() => onPage(histPage + 1)} style={pgBtn}>Next →</button>}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const pgBtn = { padding: "5px 12px", background: "#f1f5f9", color: "#1e293b", border: "1px solid #e2e8f0", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 600 };
+
+const DetailRow = ({ k, v, span, bold, color }) => (
+  <div style={span ? { gridColumn: "1 / -1" } : {}}>
+    <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{k}</div>
+    <div style={{ fontWeight: bold ? 800 : 600, color: color || "#1e293b", fontSize: 13, marginTop: 1 }}>{v || "—"}</div>
+  </div>
 );
 
 export default EmployeeDashboard;

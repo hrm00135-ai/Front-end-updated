@@ -27,6 +27,9 @@ const Dashboard = () => {
   const [empDetails, setEmpDetails]     = useState({});
   const [showAdminList, setShowAdminList] = useState(false);
   const [showEmpList, setShowEmpList]   = useState(false);
+  const [paymentOverview, setPaymentOverview] = useState([]);
+  const [payExpanded, setPayExpanded]   = useState({});   // {empId: bool}
+  const [payHistory, setPayHistory]     = useState({});   // {empId: []}
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -45,10 +48,10 @@ const Dashboard = () => {
         const leaveData = leaveRes.status === "fulfilled" ? await leaveRes.value.json() : null;
 
         if (dashData?.status  === "success") setStats(dashData.data);
-        if (empData?.status   === "success") setEmployees(empData.data?.users || []);
-        if (metalData?.status === "success") setMetals(metalData.data || []);
-        if (taskData?.status  === "success") setTasks(taskData.data?.tasks || []);
-        if (leaveData?.status === "success") setPendingLeaves(leaveData.data || []);
+        if (empData?.status   === "success") setEmployees(Array.isArray(empData.data?.users) ? empData.data.users : []);
+        if (metalData?.status === "success") setMetals(Array.isArray(metalData.data) ? metalData.data : []);
+        if (taskData?.status  === "success") setTasks(Array.isArray(taskData.data?.tasks) ? taskData.data.tasks : []);
+        if (leaveData?.status === "success") setPendingLeaves(Array.isArray(leaveData.data) ? leaveData.data : []);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -57,6 +60,7 @@ const Dashboard = () => {
     };
     fetchAll();
     fetchSessions();
+    fetchPaymentOverview();
   }, []);
 
   const fetchSessions = async () => {
@@ -64,10 +68,33 @@ const Dashboard = () => {
       const today = new Date().toISOString().split("T")[0];
       const res = await apiCall(`/auth/sessions?date=${today}`);
       const data = await res.json();
-      if (data.status === "success") setSessions(data.data || []);
+      if (data.status === "success") setSessions(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       console.error("Sessions fetch error:", err);
     }
+  };
+
+  const fetchPaymentOverview = async () => {
+    try {
+      const res = await apiCall("/payments/overview");
+      const data = await res.json();
+      if (data.status === "success") setPaymentOverview(Array.isArray(data.data) ? data.data : []);
+    } catch {}
+  };
+
+  const fetchEmpPayHistory = async (empId) => {
+    if (payHistory[empId]) return; // already loaded
+    try {
+      const res = await apiCall(`/payments/history/${empId}?page=1&per_page=50`);
+      const data = await res.json();
+      if (data.status === "success")
+        setPayHistory(prev => ({ ...prev, [empId]: Array.isArray(data.data?.transactions) ? data.data.transactions : [] }));
+    } catch {}
+  };
+
+  const togglePayExpand = (empId) => {
+    setPayExpanded(prev => ({ ...prev, [empId]: !prev[empId] }));
+    if (!payExpanded[empId]) fetchEmpPayHistory(empId);
   };
 
   const fetchEmpDetails = async (empId) => {
@@ -317,7 +344,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* ── Leave & Payroll ── */}
+      {/* ── Leave & Payment Panel ── */}
       <div className="stat-grid-2">
         <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "18px" }}>
           <h2 style={{ fontWeight: "700", fontSize: "15px", margin: "0 0 12px" }}>Leave Overview</h2>
@@ -339,14 +366,8 @@ const Dashboard = () => {
           )}
         </div>
 
-        <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "18px" }}>
-          <h2 style={{ fontWeight: "700", fontSize: "15px", margin: "0 0 12px" }}>
-            Payroll — {getMonthName(stats?.payroll?.month)} {stats?.payroll?.year}
-          </h2>
-          <InfoRow label="Payslips Generated" value={stats?.payroll?.payslips_generated || 0} />
-          <InfoRow label="Paid"               value={stats?.payroll?.paid               || 0} />
-          <InfoRow label="Pending Wages"      value={`${stats?.payroll?.pending_daily_wages || 0} (₹${stats?.payroll?.pending_wages_amount || 0})`} />
-        </div>
+        {/* Payment Panel replaces old Payroll box */}
+        <PaymentPanel navigate={navigate} />
       </div>
 
       {/* ── Tasks Table ── */}
@@ -550,5 +571,213 @@ const PriorityBadge = ({ priority }) => {
 };
 
 const getMonthName = (m) => ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m] || "";
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PaymentPanel — replaces old Payroll box
+// ─────────────────────────────────────────────────────────────────────────────
+const fmtMoney = (n) =>
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Math.max(0, n ?? 0));
+
+const fmtDateTime = (d) => {
+  if (!d) return "—";
+  const dt = new Date(d);
+  return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) +
+    " " + dt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+};
+
+const METHOD_ICONS = { cash: "💵", bank: "🏦", upi: "📱" };
+
+function PaymentPanel({ navigate }) {
+  const [overview, setOverview]     = useState([]);
+  const [expanded, setExpanded]     = useState({});   // empId → bool
+  const [history, setHistory]       = useState({});   // empId → []
+  const [loading, setLoading]       = useState(true);
+  const [loadingHist, setLoadingHist] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res  = await apiCall("/payments/overview");
+        const data = await res.json();
+        if (data.status === "success") setOverview(Array.isArray(data.data) ? data.data : []);
+      } catch {}
+      setLoading(false);
+    })();
+  }, []);
+
+  const fetchHist = async (empId) => {
+    if (history[empId]) return;
+    setLoadingHist(p => ({ ...p, [empId]: true }));
+    try {
+      const res  = await apiCall(`/payments/history/${empId}?page=1&per_page=50`);
+      const data = await res.json();
+      if (data.status === "success")
+        setHistory(p => ({ ...p, [empId]: Array.isArray(data.data?.transactions) ? data.data.transactions : [] }));
+    } catch {}
+    setLoadingHist(p => ({ ...p, [empId]: false }));
+  };
+
+  const toggle = (empId) => {
+    setExpanded(p => ({ ...p, [empId]: !p[empId] }));
+    if (!expanded[empId]) fetchHist(empId);
+  };
+
+  const unpaid = overview.filter(r => r.remaining > 0);
+  const paid   = overview.filter(r => r.remaining <= 0);
+
+  return (
+    <div style={{ background: "white", borderRadius: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: "18px", display: "flex", flexDirection: "column", gap: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+        <h2 style={{ fontWeight: "700", fontSize: "15px", margin: 0 }}>💳 Payments</h2>
+        <button onClick={() => navigate("/admin/payments")}
+          style={{ fontSize: "12px", color: "#2563eb", background: "#eff6ff", border: "none", padding: "5px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}>
+          Full View
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ color: "#94a3b8", fontSize: 13 }}>Loading…</div>
+      ) : (
+        <>
+          {/* ── UNPAID SECTION ─────────────────────────────────────────── */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+              🔴 Pending Payment ({unpaid.length})
+            </div>
+            {unpaid.length === 0 ? (
+              <div style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>✅ All employees paid</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {unpaid.map(r => (
+                  <div key={r.employee_id} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "9px 12px", borderRadius: 8,
+                    background: "#fff7ed", border: "1px solid #fed7aa", gap: 8, flexWrap: "wrap",
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {r.employee_name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#92400e", marginTop: 1 }}>
+                        Earned: {fmtMoney(r.total_earned)} · Paid: {fmtMoney(r.total_paid)}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontWeight: 800, color: "#b45309", fontSize: 14 }}>{fmtMoney(r.remaining)}</span>
+                      <button onClick={() => navigate(`/admin/payments`)}
+                        style={{ fontSize: 11, padding: "4px 10px", background: "#f59e0b", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        Pay Now
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>
+              ✅ Paid ({paid.length})
+            </div>
+            {paid.length === 0 ? (
+              <div style={{ fontSize: 13, color: "#94a3b8" }}>No completed payments yet</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 260, overflowY: "auto" }}>
+                {paid.map(r => {
+                  const open = !!expanded[r.employee_id];
+                  const hist = history[r.employee_id] || [];
+                  // Sort by date desc
+                  const sorted = [...hist].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
+                  return (
+                    <div key={r.employee_id} style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+                      {/* Dropdown header */}
+                      <button onClick={() => toggle(r.employee_id)}
+                        style={{
+                          width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+                          padding: "9px 12px", background: open ? "#f0fdf4" : "#f8fafc",
+                          border: "none", cursor: "pointer", textAlign: "left", gap: 8,
+                        }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13 }}>{r.employee_name}</span>
+                          <span style={{ fontSize: 11, color: "#64748b", marginLeft: 8 }}>Paid: {fmtMoney(r.total_paid)}</span>
+                        </div>
+                        <span style={{ color: "#16a34a", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>✅ Settled</span>
+                        <span style={{ color: "#94a3b8", fontSize: 14, flexShrink: 0 }}>{open ? "▲" : "▼"}</span>
+                      </button>
+
+                      {/* Dropdown body */}
+                      {open && (
+                        <div style={{ padding: "10px 12px", background: "#fff", borderTop: "1px solid #e2e8f0" }}>
+                          {loadingHist[r.employee_id] ? (
+                            <div style={{ color: "#94a3b8", fontSize: 12, textAlign: "center", padding: 8 }}>Loading…</div>
+                          ) : sorted.length === 0 ? (
+                            <div style={{ color: "#94a3b8", fontSize: 12 }}>No payment records</div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                              {sorted.map((tx, i) => (
+                                <div key={tx.id || i} style={{
+                                  background: tx.is_advance ? "#faf5ff" : "#f0fdf4",
+                                  border: `1px solid ${tx.is_advance ? "#e9d5ff" : "#bbf7d0"}`,
+                                  borderRadius: 8, padding: "10px 12px",
+                                }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                        <span style={{ fontWeight: 800, fontSize: 14, color: tx.status === "reversed" ? "#94a3b8" : "#0f766e", textDecoration: tx.status === "reversed" ? "line-through" : "none" }}>
+                                          {fmtMoney(tx.amount)}
+                                        </span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10,
+                                          background: tx.is_advance ? "#ede9fe" : "#dcfce7",
+                                          color: tx.is_advance ? "#7c3aed" : "#16a34a" }}>
+                                          {tx.is_advance ? "Advance" : "Full Pay"}
+                                        </span>
+                                        <span style={{ fontSize: 11, color: "#64748b" }}>
+                                          {METHOD_ICONS[tx.payment_method] || ""} {tx.payment_method}
+                                        </span>
+                                      </div>
+                                      {/* Task info */}
+                                      {tx.task_title && (
+                                        <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>
+                                          📋 Task: <strong>{tx.task_title}</strong>
+                                          {tx.task_id && <span style={{ color: "#94a3b8" }}> #{tx.task_id}</span>}
+                                        </div>
+                                      )}
+                                      {tx.reference_note && (
+                                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                                          📝 {tx.reference_note}
+                                        </div>
+                                      )}
+                                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4 }}>
+                                        🕒 {fmtDateTime(tx.payment_date)} · By: {tx.paid_by_name}
+                                      </div>
+                                    </div>
+                                    {tx.invoice_url && (
+                                      <a href={tx.invoice_url.startsWith("http") ? tx.invoice_url : `${BASE_URL}/${tx.invoice_url}`}
+                                        target="_blank" rel="noreferrer"
+                                        style={{ fontSize: 10, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: 5, textDecoration: "none", border: "1px solid #bfdbfe", flexShrink: 0, fontWeight: 600 }}>
+                                        🧾
+                                      </a>
+                                    )}
+                                  </div>
+                                  {tx.status === "reversed" && (
+                                    <div style={{ fontSize: 10, color: "#dc2626", marginTop: 4 }}>↩️ Reversed: {tx.reversal_reason}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default Dashboard;
