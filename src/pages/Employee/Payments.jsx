@@ -2,15 +2,16 @@
  * Employee Payments Page
  * Shows task-based payment details, earnings summary, and payment history.
  * Employee can only VIEW — no editing.
+ * v2: Added invoice viewing, is_advance badge, no-negative amounts, auto-refresh
  */
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
-import { apiCall, getUser } from "../../utils/api";
+import { apiCall, getUser, BASE_URL } from "../../utils/api";
 
 const fmt = (n) =>
-  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(n ?? 0);
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(Math.max(0, n ?? 0));
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 
@@ -20,6 +21,13 @@ const STATUS_STYLES = {
   pending:  { bg: "#fef3c7", color: "#d97706", label: "Pending" },
   partial:  { bg: "#dbeafe", color: "#2563eb", label: "Partial" },
   paid:     { bg: "#dcfce7", color: "#16a34a", label: "Paid" },
+};
+
+// NEW: resolve invoice path to full URL
+const resolveInvoiceUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${BASE_URL}/${path}`;
 };
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
@@ -51,6 +59,19 @@ function PaymentStatusBadge({ status }) {
   );
 }
 
+// NEW: invoice link component
+function InvoiceLink({ url }) {
+  if (!url) return <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>;
+  const full = resolveInvoiceUrl(url);
+  const isPdf = url.toLowerCase().endsWith(".pdf");
+  return (
+    <a href={full} target="_blank" rel="noreferrer"
+      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", background: "#f0fdf4", color: "#16a34a", borderRadius: 6, fontSize: 11, fontWeight: 600, textDecoration: "none", border: "1px solid #bbf7d0" }}>
+      {isPdf ? "📄 PDF" : "🧾 Slip"}
+    </a>
+  );
+}
+
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 
 const EmployeePayments = () => {
@@ -63,19 +84,15 @@ const EmployeePayments = () => {
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview"); // overview | tasks | history
+  const [activeTab, setActiveTab] = useState("overview"); // overview | history
 
   // Task payment detail modal
   const [selectedTaskPayment, setSelectedTaskPayment] = useState(null);
   const [taskPaymentHistory, setTaskPaymentHistory] = useState([]);
   const [loadingTaskPayment, setLoadingTaskPayment] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
-    setLoading(true);
+  // ── Auto-refresh on tab focus + polling ──────────────────────────────────
+  const fetchAll = useCallback(async () => {
     try {
       await Promise.all([
         fetchTasks(),
@@ -85,19 +102,38 @@ const EmployeePayments = () => {
     } catch {} finally {
       setLoading(false);
     }
-  };
+  }, []); // eslint-disable-line
+
+  useEffect(() => {
+    fetchAll();
+
+    const interval = setInterval(fetchAll, 30000);
+    const onVisible = () => { if (!document.hidden) fetchAll(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []); // eslint-disable-line
 
   const fetchTasks = async () => {
     try {
       const res = await apiCall("/tasks/?per_page=200");
       const data = await res.json();
       if (data.status === "success") {
-        setTasks(data.data?.tasks || data.data || []);
+        setTasks(Array.isArray(data.data?.tasks) ? data.data.tasks : Array.isArray(data.data) ? data.data : []);
       }
     } catch {}
   };
 
+  // NEW: try employee-self endpoint first, fallback to admin endpoint
   const fetchSummary = async () => {
+    try {
+      const res = await apiCall("/payments/my-summary");
+      const data = await res.json();
+      if (data.status === "success") { setSummary(data.data); return; }
+    } catch {}
     try {
       const res = await apiCall(`/payments/summary/${user?.id}`);
       const data = await res.json();
@@ -105,13 +141,24 @@ const EmployeePayments = () => {
     } catch {}
   };
 
+  // NEW: try employee-self endpoint first, fallback to admin endpoint
   const fetchHistory = useCallback(async (page = 1) => {
+    try {
+      const res = await apiCall(`/payments/my-history?page=${page}&per_page=15`);
+      const data = await res.json();
+      if (data.status === "success") {
+        setHistory(Array.isArray(data.data?.transactions) ? data.data.transactions : []);
+        setHistoryTotal(data.data?.total || 0);
+        setHistoryPage(page);
+        return;
+      }
+    } catch {}
     try {
       const res = await apiCall(`/payments/history/${user?.id}?page=${page}&per_page=15`);
       const data = await res.json();
       if (data.status === "success") {
-        setHistory(data.data.transactions || []);
-        setHistoryTotal(data.data.total || 0);
+        setHistory(Array.isArray(data.data?.transactions) ? data.data.transactions : []);
+        setHistoryTotal(data.data?.total || 0);
         setHistoryPage(page);
       }
     } catch {}
@@ -126,7 +173,6 @@ const EmployeePayments = () => {
       const data = await res.json();
       if (data.status === "success") {
         setTaskPaymentHistory(data.data?.payments || []);
-        // Update task with detailed payment info if available
         if (data.data?.task_payment) {
           setSelectedTaskPayment(prev => ({ ...prev, ...data.data.task_payment }));
         }
@@ -248,7 +294,7 @@ const EmployeePayments = () => {
                       const total = parseFloat(task.payment_amount) || 0;
                       const advance = parseFloat(task.advance_paid) || 0;
                       const paid = parseFloat(task.total_paid) || advance;
-                      const remaining = total - paid;
+                      const remaining = Math.max(0, total - paid);
                       const payStatus = paid >= total ? "paid" : paid > 0 ? "partial" : "pending";
 
                       return (
@@ -329,9 +375,11 @@ const EmployeePayments = () => {
                       <th style={S.th}>#</th>
                       <th style={S.th}>Date</th>
                       <th style={S.th}>Amount</th>
+                      <th style={S.th}>Type</th>
                       <th style={S.th}>Method</th>
                       <th style={S.th}>Reference</th>
                       <th style={S.th}>Task</th>
+                      <th style={S.th}>Invoice</th>
                       <th style={S.th}>Status</th>
                     </tr>
                   </thead>
@@ -347,11 +395,23 @@ const EmployeePayments = () => {
                         }}>
                           {fmt(tx.amount)}
                         </td>
+                        {/* NEW: Advance/Payment type badge */}
+                        <td style={S.td}>
+                          <span style={{
+                            padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700,
+                            background: tx.is_advance ? "#ede9fe" : "#f0fdf4",
+                            color: tx.is_advance ? "#7c3aed" : "#16a34a",
+                          }}>
+                            {tx.is_advance ? "Advance" : "Payment"}
+                          </span>
+                        </td>
                         <td style={S.td}>{METHOD_LABELS[tx.payment_method] || tx.payment_method || "—"}</td>
                         <td style={{ ...S.td, color: "#64748b", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
                           {tx.reference_note || "—"}
                         </td>
                         <td style={{ ...S.td, fontSize: 12 }}>{tx.task_title || "—"}</td>
+                        {/* NEW: Invoice column */}
+                        <td style={S.td}><InvoiceLink url={tx.invoice_url} /></td>
                         <td style={S.td}>
                           <span style={{
                             background: tx.status === "completed" ? "#dcfce7" : "#fee2e2",
@@ -429,7 +489,7 @@ const EmployeePayments = () => {
                 const total = parseFloat(selectedTaskPayment.payment_amount) || 0;
                 const advance = parseFloat(selectedTaskPayment.advance_paid) || 0;
                 const paid = parseFloat(selectedTaskPayment.total_paid) || advance;
-                const remaining = total - paid;
+                const remaining = Math.max(0, total - paid);
                 const payStatus = paid >= total ? "paid" : paid > 0 ? "partial" : "pending";
 
                 return (
@@ -492,13 +552,17 @@ const EmployeePayments = () => {
                             {fmtDate(tx.payment_date)} {tx.reference_note ? ` • ${tx.reference_note}` : ""}
                           </div>
                         </div>
-                        <span style={{
-                          background: tx.is_advance ? "#ede9fe" : "#dcfce7",
-                          color: tx.is_advance ? "#7c3aed" : "#16a34a",
-                          padding: "2px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700,
-                        }}>
-                          {tx.is_advance ? "Advance" : "Payment"}
-                        </span>
+                        {/* NEW: type badge + invoice link side by side */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                          <span style={{
+                            background: tx.is_advance ? "#ede9fe" : "#dcfce7",
+                            color: tx.is_advance ? "#7c3aed" : "#16a34a",
+                            padding: "2px 10px", borderRadius: 12, fontSize: 10, fontWeight: 700,
+                          }}>
+                            {tx.is_advance ? "Advance" : "Payment"}
+                          </span>
+                          {tx.invoice_url && <InvoiceLink url={tx.invoice_url} />}
+                        </div>
                       </div>
                     ))}
                   </div>

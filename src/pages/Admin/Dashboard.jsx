@@ -45,10 +45,10 @@ const Dashboard = () => {
         const leaveData = leaveRes.status === "fulfilled" ? await leaveRes.value.json() : null;
 
         if (dashData?.status  === "success") setStats(dashData.data);
-        if (empData?.status   === "success") setEmployees(empData.data?.users || []);
-        if (metalData?.status === "success") setMetals(metalData.data || []);
-        if (taskData?.status  === "success") setTasks(taskData.data?.tasks || []);
-        if (leaveData?.status === "success") setPendingLeaves(leaveData.data || []);
+        if (empData?.status   === "success") setEmployees(Array.isArray(empData.data?.users) ? empData.data.users : []);
+        if (metalData?.status === "success") setMetals(Array.isArray(metalData.data) ? metalData.data : []);
+        if (taskData?.status  === "success") setTasks(Array.isArray(taskData.data?.tasks) ? taskData.data.tasks : []);
+        if (leaveData?.status === "success") setPendingLeaves(Array.isArray(leaveData.data) ? leaveData.data : []);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -64,7 +64,7 @@ const Dashboard = () => {
       const today = new Date().toISOString().split("T")[0];
       const res = await apiCall(`/auth/sessions?date=${today}`);
       const data = await res.json();
-      if (data.status === "success") setSessions(data.data || []);
+      if (data.status === "success") setSessions(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       console.error("Sessions fetch error:", err);
     }

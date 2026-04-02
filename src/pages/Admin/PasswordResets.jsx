@@ -17,7 +17,7 @@ const PasswordResets = () => {
     try {
       const res = await apiCall("/auth/password-reset/pending");
       const data = await res.json();
-      if (data.status === "success") setPending(data.data || []);
+      if (data.status === "success") setPending(Array.isArray(data.data) ? data.data : []);
     } catch {} finally { setLoading(false); }
   };
 

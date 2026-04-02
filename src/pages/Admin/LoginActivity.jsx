@@ -32,7 +32,7 @@ const LoginActivity = () => {
       const res = await apiCall(`/auth/sessions?date=${selectedDate}`);
       const data = await res.json();
       if (data.status === "success") {
-        setSessions(data.data || []);
+        setSessions(Array.isArray(data.data) ? data.data : []);
       }
     } catch (err) {
       console.error(err);

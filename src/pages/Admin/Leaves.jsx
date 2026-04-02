@@ -33,7 +33,7 @@ const Leaves = () => {
     try {
       const res = await apiCall("/leaves/pending");
       const data = await res.json();
-      if (data.status === "success") setPending(data.data || []);
+      if (data.status === "success") setPending(Array.isArray(data.data) ? data.data : []);
     } catch {} finally { setLoading(false); }
   };
 
@@ -41,7 +41,7 @@ const Leaves = () => {
     try {
       const res = await apiCall("/leaves/types");
       const data = await res.json();
-      if (data.status === "success") setLeaveTypes(data.data || []);
+      if (data.status === "success") setLeaveTypes(Array.isArray(data.data) ? data.data : []);
     } catch {}
   };
 
@@ -49,7 +49,7 @@ const Leaves = () => {
     try {
       const res = await apiCall("/leaves/holidays");
       const data = await res.json();
-      if (data.status === "success") setHolidays(data.data || []);
+      if (data.status === "success") setHolidays(Array.isArray(data.data) ? data.data : []);
     } catch {}
   };
 

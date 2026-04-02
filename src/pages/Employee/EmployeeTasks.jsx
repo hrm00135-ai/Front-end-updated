@@ -95,7 +95,7 @@ const EmployeeTasks = () => {
       const res = await apiCall("/tasks/");
       const data = await res.json();
       if (data.status === "success") {
-        setTasks(data.data?.tasks || data.data || []);
+        setTasks(Array.isArray(data.data?.tasks) ? data.data.tasks : Array.isArray(data.data) ? data.data : []);
       } else {
         setTasks([]);
       }

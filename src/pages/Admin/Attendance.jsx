@@ -54,7 +54,7 @@ const Attendance = () => {
     try {
       const res = await apiCall(`/attendance/employee/${selectedEmp}?month=${month}`);
       const data = await res.json();
-      if (data.status === "success") setRecords(data.data || []);
+      if (data.status === "success") setRecords(Array.isArray(data.data) ? data.data : Array.isArray(data.data?.records) ? data.data.records : []);
     } catch {} finally { setLoading(false); }
   };
 

@@ -50,7 +50,7 @@ const EmployeeAttendance = () => {
       if (histRes.status === "fulfilled") {
         const data = await histRes.value.json();
         if (data.status === "success")
-          setHistory(data.data?.records || data.data || []);
+          setHistory(Array.isArray(data.data?.records) ? data.data.records : Array.isArray(data.data) ? data.data : []);
       }
       if (sumRes.status === "fulfilled") {
         const data = await sumRes.value.json();
