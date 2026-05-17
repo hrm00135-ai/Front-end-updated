@@ -148,7 +148,7 @@ const LoginActivity = () => {
                   <td style={td}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <img
-                        src={s.photo_url ? `${BASE_URL}/${s.photo_url}` : `https://ui-avatars.com/api/?name=${s.first_name || "U"}+${s.last_name || ""}&background=3b82f6&color=fff&size=36`}
+                        src={s.photo_url || `https://ui-avatars.com/api/?name=${s.first_name || "U"}+${s.last_name || ""}&background=3b82f6&color=fff&size=36`}
                         alt=""
                         style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
                       />

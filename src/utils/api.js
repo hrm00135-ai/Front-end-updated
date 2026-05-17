@@ -1,5 +1,5 @@
-export const API_BASE = "https://temp-backend-production-2b8a.up.railway.app/api";
-export const BASE_URL = "https://temp-backend-production-2b8a.up.railway.app";
+export const API_BASE = "https://back-end-i0s3.onrender.com/api";
+export const BASE_URL = "https://back-end-i0s3.onrender.com";
 
 export async function apiCall(endpoint, options = {}) {
   const token = localStorage.getItem("access_token");

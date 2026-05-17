@@ -262,7 +262,7 @@ const AssignTask = () => {
     try {
       const res = await apiCall("/tasks/?per_page=200");
       const data = await res.json();
-      if (data.status === "success") setTasks(data.data?.tasks || []);
+      if (data.status === "success") setTasks(Array.isArray(data.data?.tasks) ? data.data.tasks : []);
     } catch {
     } finally {
       setLoading(false);

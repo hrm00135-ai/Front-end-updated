@@ -212,7 +212,7 @@ const Dashboard = () => {
             <div key={emp.id} onClick={() => navigate(`/admin/employees/${emp.id}`)}
               style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 4px", borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}>
               <img
-                src={emp.photo_url ? `${BASE_URL}/${emp.photo_url}` : `https://ui-avatars.com/api/?name=${emp.first_name}+${emp.last_name}&background=3b82f6&color=fff&size=32`}
+                src={emp.photo_url || `https://ui-avatars.com/api/?name=${emp.first_name}+${emp.last_name}&background=3b82f6&color=fff&size=32`}
                 alt="" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -236,7 +236,7 @@ const Dashboard = () => {
           {employees.filter(e => e.role === "admin").map(adm => (
             <div key={adm.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 4px", borderBottom: "1px solid #f1f5f9" }}>
               <img
-                src={adm.photo_url ? `${BASE_URL}/${adm.photo_url}` : `https://ui-avatars.com/api/?name=${adm.first_name}+${adm.last_name}&background=8b5cf6&color=fff&size=32`}
+                src={adm.photo_url || `https://ui-avatars.com/api/?name=${adm.first_name}+${adm.last_name}&background=8b5cf6&color=fff&size=32`}
                 alt="" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -415,7 +415,7 @@ const Dashboard = () => {
               <div className="emp-card-inner">
                 <img
                   className="emp-card-photo"
-                  src={emp.photo_url ? `${BASE_URL}/${emp.photo_url}` : `https://ui-avatars.com/api/?name=${emp.first_name}+${emp.last_name}&background=3b82f6&color=fff&size=80`}
+                  src={emp.photo_url || `https://ui-avatars.com/api/?name=${emp.first_name}+${emp.last_name}&background=3b82f6&color=fff&size=80`}
                   alt="photo"
                   style={{ width: "52px", height: "52px", borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0", flexShrink: 0 }}
                 />
